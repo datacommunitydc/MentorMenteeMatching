@@ -41,11 +41,47 @@ def matchMM(mentors,mentees,stack):
   for mr,mentor in mentors.iterrows():
     for me,mentee in mentees.iterrows():
       MM[mentor['xx'],mentee['xx']] = fuzz.ratio(mentor[cmap[5]],mentee[cmap[5]])
-  return MM
+  return MM.astype(int)
+
+def prioritizeMM(MM,mentors,mentees):
+  def testMatches(MT):
+    MT = MT.astype(int)
+    mentee_matches = np.sum(MT,axis=1)
+    if (0 in mentee_matches) | (1 in mentee_matches): # Every Mentee gets two options.
+      return False
+    else:
+      return True
+
+  def tupleMatches(MM,MT):
+    mentor_assignments = []
+    mentee_assignments = []
+    for mr in range(MT.shape[0]):
+      sorted = np.argsort(MM[mr][MT[mr]])[::-1]
+      mentor_assignments += [(mr,sorted[0:3])]
+    ME = np.transpose(MT)
+    MM = np.transpose(MM)
+    for me in range(ME.shape[0]):
+      sorted = np.argsort(MM[me][ME[me]])[::-1]
+      mentee_assignments += [(me,sorted[0:2])]
+    return mentor_assignments,mentee_assignments
+
+  maxMM = np.amax(MM)
+  minMM = np.amin(MM)
+  step = 5
+  thresholds = list(reversed(range(minMM,maxMM,step))) # Decrease in 5% increments
+  for T in thresholds:
+    # Find the indices of the matrix that are above this threshold, and test the results
+    MT = MM > T
+    if testMatches(MT):
+      break
+  return tupleMatches(MM,MT)
 
 #-----------
 data = readData(data_dir)
 mentors, mentees = extractMentorsMentees(data)
 stack = readStack(data)
 MM = matchMM(mentors,mentees,stack)
+mentor_matches,mentee_matches = prioritizeMM(MM,mentors,mentees)
 plt.imshow(MM)
+mentor_assignments, mentee_assignments = prioritizeMM(MM,mentors,mentees)
+blah = 9

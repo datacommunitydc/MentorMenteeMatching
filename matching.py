@@ -43,7 +43,7 @@ def matchMM(mentors,mentees,stack):
       MM[mentor['xx'],mentee['xx']] = fuzz.ratio(mentor[cmap[5]],mentee[cmap[5]])
   return MM.astype(int)
 
-def prioritizeMM(MM,mentors,mentees):
+def prioritizeMM(MM):
   def testMatches(MT):
     MT = MT.astype(int)
     mentee_matches = np.sum(MT,axis=1)
@@ -76,12 +76,33 @@ def prioritizeMM(MM,mentors,mentees):
       break
   return tupleMatches(MM,MT)
 
+def nameMatches(assignments,owners,assigned):
+  def full_name(names,xx):
+    individual = names[names['xx'] == xx].iloc[0]
+    return individual[cmap[2]] + '_' + individual[cmap[3]]
+  Names = []
+  for k,assign in enumerate(assignments):
+    Names += [[full_name(owners,assign[0]),
+              ', '.join([full_name(assigned,ax) for ax in assign[1]])]]
+  return Names
+
+def writeAssignmentsToCSV(mentor_assignments,mentee_assignments):
+  mentor_csv = pd.DataFrame(mentor_assignments)
+  mentor_csv.columns = ["Mentors", "Mentees"]
+  mentor_csv.to_csv('mentor_assignments.csv')
+
+  mentee_csv = pd.DataFrame(mentee_assignments)
+  mentee_csv.columns = ["Mentees", "Mentors"]
+  mentee_csv.to_csv('mentee_assignments.csv')
+
 #-----------
 data = readData(data_dir)
 mentors, mentees = extractMentorsMentees(data)
 stack = readStack(data)
 MM = matchMM(mentors,mentees,stack)
-mentor_matches,mentee_matches = prioritizeMM(MM,mentors,mentees)
-plt.imshow(MM)
-mentor_assignments, mentee_assignments = prioritizeMM(MM,mentors,mentees)
+# plt.imshow(MM)
+mentor_assignments, mentee_assignments = prioritizeMM(MM)
+mentor_assignments = nameMatches(mentor_assignments,mentors,mentees)
+mentee_assignments = nameMatches(mentee_assignments,mentees,mentors)
+writeAssignmentsToCSV(mentor_assignments,mentee_assignments)
 blah = 9
